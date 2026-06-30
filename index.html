@@ -400,7 +400,7 @@
    - 사진을 넣고 싶으면 avatar 부분을 <img src="photo.jpg"> 로 바꾸면 됩니다.
 ================================================================= */
 const CONFIG = {
-  brand: { name: "Isabelle", initial: "I" },
+  brand: { name: "최유리", initial: "I" },
   resumeUrl: "resume.pdf", // ✏️ 실제 이력서 PDF 파일명으로 변경
 
   profile: {
@@ -411,10 +411,9 @@ const CONFIG = {
   },
 
   socials: [
-    { key: "mail", href: "mailto:your.email@example.com" },
+    { key: "mail", href: "mailto:a3096kr@naver.com" },
     { key: "linkedin", href: "https://www.linkedin.com/in/yourprofile" },
-    { key: "github", href: "https://github.com/yourusername" },
-    { key: "instagram", href: "https://instagram.com/bbomi.ai" }
+    { key: "github", href: "https://github.com/yourusername" }
   ],
 
   languages: [
@@ -442,7 +441,7 @@ const CONFIG = {
     headingKo: '안녕하세요, <span class="accent">Isabelle</span>입니다.<br>AI 서비스 기획자입니다.',
     headingEn: 'Hi, I\'m <span class="accent">Isabelle</span>.<br>An AI Service Planner.',
     sub: {
-      ko: "애니메이션 프로덕션과 AI 서비스 기획을 오가며, 콘텐츠와 기술 사이의 빈틈을 채우는 일을 합니다. 13년 이상의 해외 생활에서 비롯된 이중언어 감각으로 한국어·영어 콘텐츠를 동시에 다룹니다.",
+      ko: "번역과 AI 서비스 기획을 오가며, 콘텐츠와 기술 사이의 빈틈을 채우는 일을 합니다. 13년 이상의 해외 생활에서 비롯된 이중언어 감각으로 한국어·영어 콘텐츠를 동시에 다룹니다.",
       en: "I move between animation production and AI service planning, filling the gap between content and technology. Over 13 years abroad shaped a near-native bilingual instinct for working across Korean and English content."
     }
   },
@@ -470,7 +469,7 @@ const CONFIG = {
     {
       company: "Kakao Entertainment — AI Center",
       roleKo: "AI 서비스 기획자", roleEn: "AI Service Planner",
-      years: "2022 — 2024",
+      years: "2022.04 — 2024.03",
       openByDefault: true,
       actionKo: "콘텐츠 제작 조직 안에서 AI 서비스 기획과 운영을 담당. 실험적 프로토타입을 경영진 의사결정으로, 사내 도구를 현업이 매일 쓰는 워크플로로 옮기는 역할.",
       actionEn: "Led AI service planning and operations inside a content production organization — translating experimental prototypes into executive decisions, and internal tools into workflows people actually used every day.",
@@ -482,23 +481,10 @@ const CONFIG = {
       ],
       tags: ["AI Service Design","Prompt Engineering","Stakeholder Presentation","GPTs / LLM Ops"]
     },
-    {
-      company: "Studio Mir",
-      roleKo: "프로덕션 / 현지화 협업", roleEn: "Production / Localization Collaboration",
-      years: "20XX — 20XX", // ✏️ 재직 기간 입력
-      openByDefault: false,
-      actionKo: "루카스필름 프로듀서들과 직접 협업하며 《스타워즈: 비전스》 시즌 2 제작에 참여. 글로벌 IP 제작 환경에서 언어와 디테일이 동시에 중요한 작업을 경험.",
-      actionEn: "Worked directly with Lucasfilm producers on the production of Star Wars: Visions Vol. 2 — hands-on experience in a global-IP environment where language precision and craft detail mattered equally.",
-      beats: [
-        { ko: "글로벌 파트너사와의 커뮤니케이션 및 제작 조율", en: "Cross-team communication and production coordination with a global studio partner" },
-        { ko: "영어·한국어 동시 대응이 필요한 제작 문서 및 협업 프로세스 처리", en: "Handled production documentation and collaboration processes requiring simultaneous Korean–English fluency" }
-      ],
-      tags: ["Animation Production","Global IP","Bilingual Coordination"]
-    },
-    {
-      company: "Kick the Hurdle Studio",
-      roleKo: "자막 / 현지화", roleEn: "Subtitling / Localization",
-      years: "20XX — 20XX", // ✏️ 재직 기간 입력
+        {
+      company: "대한약침학회",
+      roleKo: "대외협력 / 마케팅", roleEn: "Communication / Marketing",
+      years: "2022.08 — 2023.07", // ✏️ 재직 기간 입력
       openByDefault: false,
       actionKo: "자막 제작 및 현지화 작업을 통해 콘텐츠가 언어를 넘어 의미를 잃지 않도록 다듬는 일을 담당.",
       actionEn: "Worked on subtitling and localization, refining content so meaning survived the move across languages.",
@@ -507,6 +493,19 @@ const CONFIG = {
         { ko: "현지화 과정에서의 문화적 뉘앙스 조정", en: "Adjusted cultural nuance through the localization process" }
       ],
       tags: ["Subtitling","Localization QA"]
+    },
+    {
+      company: "Studio Mir",
+      roleKo: "프로덕션 / 현지화 협업", roleEn: "Production / Localization Collaboration",
+      years: "2021.10 — 2022.04", // ✏️ 재직 기간 입력
+      openByDefault: false,
+      actionKo: "루카스필름 프로듀서들과 직접 협업하며 《스타워즈: 비전스》 시즌 2 제작에 참여. 글로벌 IP 제작 환경에서 언어와 디테일이 동시에 중요한 작업을 경험.",
+      actionEn: "Worked directly with Lucasfilm producers on the production of Star Wars: Visions Vol. 2 — hands-on experience in a global-IP environment where language precision and craft detail mattered equally.",
+      beats: [
+        { ko: "글로벌 파트너사와의 커뮤니케이션 및 제작 조율", en: "Cross-team communication and production coordination with a global studio partner" },
+        { ko: "영어·한국어 동시 대응이 필요한 제작 문서 및 협업 프로세스 처리", en: "Handled production documentation and collaboration processes requiring simultaneous Korean–English fluency" }
+      ],
+      tags: ["Animation Production","Global IP","Bilingual Coordination"]
     }
   ],
 
