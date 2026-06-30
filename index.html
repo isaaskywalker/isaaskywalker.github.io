@@ -29,6 +29,7 @@
   body{
     margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
     -webkit-font-smoothing:antialiased;
+    word-break:keep-all; overflow-wrap:break-word;
   }
   body.lang-ko .en{display:none;}
   body.lang-en .ko{display:none;}
@@ -63,6 +64,7 @@
     position:absolute; bottom:4px; right:4px; width:16px; height:16px;
     background:#34C759; border:3px solid #fff; border-radius:50%;
   }
+  .avatar img{ width:100%; height:100%; border-radius:50%; object-fit:cover; }
   .id-block{ text-align:center; margin-bottom:20px; }
   .id-block h2{ font-size:19px; }
   .id-block p{ margin:4px 0 0; font-size:13px; color:var(--ink-soft); font-weight:500; }
@@ -132,11 +134,13 @@
   .btn-primary{
     background:var(--blue); color:#fff; border:none; padding:13px 24px; border-radius:980px;
     font-size:14px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    white-space:nowrap;
   }
   .btn-primary:hover{ background:var(--blue-hover); }
   .btn-ghost{
     background:transparent; color:var(--ink); border:1px solid var(--line); padding:13px 24px; border-radius:980px;
     font-size:14px; font-weight:700; cursor:pointer; text-decoration:none;
+    white-space:nowrap;
   }
   .btn-ghost:hover{ border-color:var(--blue); color:var(--blue); }
 
@@ -204,6 +208,8 @@
     display:flex; flex-direction:column; gap:12px; min-height:190px;
   }
   .cut:hover{ transform:translateY(-3px); box-shadow:0 14px 24px -16px rgba(0,0,0,0.18); }
+  .cut-thumb{ margin:-20px -20px 0; aspect-ratio:16/9; border-radius:16px 16px 0 0; overflow:hidden; background:var(--bg); }
+  .cut-thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
   .cut-top{ display:flex; justify-content:space-between; align-items:flex-start; }
   .cut-label{ font-size:11px; font-weight:700; color:var(--blue); }
   .cut-tools{ font-size:10px; color:var(--ink-soft); text-align:right; font-weight:500;}
@@ -228,6 +234,8 @@
     border:none; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px;
   }
   .modal-close:hover{ background:var(--line); }
+  .modal-media{ margin:-36px -36px 22px; border-radius:18px 18px 0 0; overflow:hidden; }
+  .modal-media img, .modal-media video{ width:100%; display:block; }
   .modal-label{ font-size:11.5px; font-weight:700; color:var(--blue); margin-bottom:12px; display:block;}
   .modal h3{ font-size:23px; margin-bottom:14px; line-height:1.25; }
   .modal .action{ font-size:14px; }
@@ -239,7 +247,7 @@
     background:var(--ink); color:#fff; border-radius:24px; padding:48px 40px;
     display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px;
   }
-  .foot-card h2{ color:#fff; font-size:clamp(22px,3vw,30px); max-width:420px; }
+  .foot-card h2{ color:#fff; font-size:clamp(22px,3vw,30px); max-width:600px; }
   .foot-links{ display:flex; gap:10px; flex-wrap:wrap; }
   .foot-links a{
     font-size:13px; font-weight:600; text-decoration:none; color:#fff;
@@ -258,7 +266,15 @@
   @media (max-width:520px){
     .service-grid{ grid-template-columns:1fr; }
     .service-card.wide{ grid-column:span 1; flex-direction:column; text-align:center; }
-    .foot-card{ flex-direction:column; align-items:flex-start; }
+
+    .hero-grid{ flex-direction:column; text-align:center; }
+    .hero-text{ width:100%; }
+    .hero-sub{ margin-left:auto; margin-right:auto; }
+    .hero-cta{ justify-content:center; }
+    .btn-primary, .btn-ghost{ font-size:13px; padding:11px 18px; }
+
+    .foot-card{ flex-direction:column; align-items:center; text-align:center; padding:36px 26px; }
+    .foot-links{ justify-content:center; }
   }
 </style>
 </head>
@@ -385,6 +401,7 @@
 <div class="modal-backdrop" id="modalBackdrop">
   <div class="modal" role="dialog" aria-modal="true">
     <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <div class="modal-media" id="modalMedia" style="display:none;"></div>
     <span class="modal-label" id="modalLabel"></span>
     <h3 id="modalTitle"></h3>
     <p class="action" id="modalDesc"></p>
@@ -400,10 +417,13 @@
    - 사진을 넣고 싶으면 avatar 부분을 <img src="photo.jpg"> 로 바꾸면 됩니다.
 ================================================================= */
 const CONFIG = {
-  brand: { name: "최유리", initial: "I" },
+  brand: { name: "최유리", initial: "최" },
   resumeUrl: "resume.pdf", // ✏️ 실제 이력서 PDF 파일명으로 변경
 
   profile: {
+    // ✏️ 프로필 사진: images 폴더에 사진을 올린 뒤 파일명을 적으세요. 비워두면(빈 문자열) 이니셜 아바타가 표시됩니다.
+    // 예: photo: "images/profile.jpg"
+    photo: "",
     location: "Seoul, KR",
     recentCompany: "Kakao Entertainment",
     status: { ko: "구직중", en: "Open to opportunities" },
@@ -413,7 +433,7 @@ const CONFIG = {
   socials: [
     { key: "mail", href: "mailto:a3096kr@naver.com" },
     { key: "linkedin", href: "https://www.linkedin.com/in/yourprofile" },
-    { key: "github", href: "https://github.com/yourusername" }
+    { key: "github", href: "https://github.com/isaaskywalker" }
   ],
 
   languages: [
@@ -469,7 +489,7 @@ const CONFIG = {
     {
       company: "Kakao Entertainment — AI Center",
       roleKo: "AI 서비스 기획자", roleEn: "AI Service Planner",
-      years: "2022.04 — 2024.03",
+      years: "2024.04 — 2026.03",
       openByDefault: true,
       actionKo: "콘텐츠 제작 조직 안에서 AI 서비스 기획과 운영을 담당. 실험적 프로토타입을 경영진 의사결정으로, 사내 도구를 현업이 매일 쓰는 워크플로로 옮기는 역할.",
       actionEn: "Led AI service planning and operations inside a content production organization — translating experimental prototypes into executive decisions, and internal tools into workflows people actually used every day.",
@@ -481,10 +501,10 @@ const CONFIG = {
       ],
       tags: ["AI Service Design","Prompt Engineering","Stakeholder Presentation","GPTs / LLM Ops"]
     },
-        {
+    {
       company: "대한약침학회",
       roleKo: "대외협력 / 마케팅", roleEn: "Communication / Marketing",
-      years: "2022.08 — 2023.07", // ✏️ 재직 기간 입력
+      years: "2022.08 — 2023.07",
       openByDefault: false,
       actionKo: "자막 제작 및 현지화 작업을 통해 콘텐츠가 언어를 넘어 의미를 잃지 않도록 다듬는 일을 담당.",
       actionEn: "Worked on subtitling and localization, refining content so meaning survived the move across languages.",
@@ -497,7 +517,7 @@ const CONFIG = {
     {
       company: "Studio Mir",
       roleKo: "프로덕션 / 현지화 협업", roleEn: "Production / Localization Collaboration",
-      years: "2021.10 — 2022.04", // ✏️ 재직 기간 입력
+      years: "2021.10 — 2022.04",
       openByDefault: false,
       actionKo: "루카스필름 프로듀서들과 직접 협업하며 《스타워즈: 비전스》 시즌 2 제작에 참여. 글로벌 IP 제작 환경에서 언어와 디테일이 동시에 중요한 작업을 경험.",
       actionEn: "Worked directly with Lucasfilm producers on the production of Star Wars: Visions Vol. 2 — hands-on experience in a global-IP environment where language precision and craft detail mattered equally.",
@@ -510,10 +530,15 @@ const CONFIG = {
   ],
 
   // ---- 프로젝트 ----
+  // ✏️ 사진/영상 추가 방법: images, videos 폴더에 파일을 올린 뒤
+  //    원하는 카드에 image: "images/파일명.jpg" 또는 video: "videos/파일명.mp4" 를 추가하세요.
+  //    둘 다 없으면 카드/모달에 사진 영역 없이 텍스트만 표시됩니다.
   cuts: [
     {
       label: "Project 01", tools: "Storyboard · Mise-en-scène · AI Pipeline",
       titleKo: "「사이 (Between)」", titleEn: "「Between (사이)」",
+      image: "", // 예: "images/between-poster.jpg"
+      video: "", // 예: "videos/between-demo.mp4"
       descKo: "네이버웹툰 AI 애니메이터 지원을 위해 직접 개발한 오리지널 단편 애니메이션 기획. 풀 스토리보드와 미장센 설계, AI 툴 파이프라인 문서까지 전 과정을 직접 구성했습니다.",
       descEn: "An original short animation concept developed for a Naver Webtoon AI Animator application — including a full storyboard, mise-en-scène design, and a documented AI tool pipeline, built end to end.",
       beats: [
@@ -630,7 +655,11 @@ langToggle.addEventListener('click', () => {
 });
 
 /* ---------- 사이드바 ---------- */
-document.getElementById('avatarInitial').textContent = CONFIG.brand.initial;
+if(CONFIG.profile.photo){
+  document.getElementById('avatar').innerHTML = `<img src="${CONFIG.profile.photo}" alt="${CONFIG.brand.name}"><span class="dot"></span>`;
+} else {
+  document.getElementById('avatarInitial').textContent = CONFIG.brand.initial;
+}
 document.getElementById('sideName').textContent = CONFIG.brand.name;
 document.getElementById('sideRole').innerHTML = `<span class="ko">${CONFIG.profile.role.ko}</span><span class="en">${CONFIG.profile.role.en}</span>`;
 document.getElementById('cvBtn').href = CONFIG.resumeUrl;
@@ -713,6 +742,7 @@ CONFIG.cuts.forEach((c) => {
   const el = document.createElement('div');
   el.className = 'cut';
   el.innerHTML = `
+    ${c.image ? `<div class="cut-thumb"><img src="${c.image}" alt="${c.titleKo}" loading="lazy"></div>` : ''}
     <div class="cut-top">
       <span class="cut-label">${c.label}</span>
       <span class="cut-tools">${c.tools}</span>
@@ -732,7 +762,6 @@ document.getElementById('footLinks').innerHTML = `
   <a href="mailto:${CONFIG.contact.email}">${CONFIG.contact.email}</a>
   <a href="${CONFIG.contact.linkedin}" target="_blank" rel="noopener">LinkedIn</a>
   <a href="${CONFIG.contact.github}" target="_blank" rel="noopener">GitHub</a>
-  <a href="${CONFIG.contact.instagram}" target="_blank" rel="noopener">Instagram</a>
 `;
 document.getElementById('copyrightRow').innerHTML = `
   <span>© 2026 ${CONFIG.brand.name}</span>
@@ -751,6 +780,17 @@ let currentModalData = null;
 function openModal(c){
   currentModalData = c;
   const isEn = document.body.classList.contains('lang-en');
+  const media = document.getElementById('modalMedia');
+  if(c.video){
+    media.style.display = 'block';
+    media.innerHTML = `<video src="${c.video}" controls playsinline></video>`;
+  } else if(c.image){
+    media.style.display = 'block';
+    media.innerHTML = `<img src="${c.image}" alt="${isEn ? c.titleEn : c.titleKo}">`;
+  } else {
+    media.style.display = 'none';
+    media.innerHTML = '';
+  }
   modalLabel.textContent = c.label + ' — ' + c.tools;
   modalTitle.textContent = isEn ? c.titleEn : c.titleKo;
   modalDesc.textContent = isEn ? c.descEn : c.descKo;
