@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isabelle — AI Service Planner</title>
+<style>
+  /* ============================================================
+     색상 / 폰트 토큰 — 이 :root 값만 바꾸면 전체 색상이 바뀝니다.
+  ============================================================ */
+  :root{
+    --bg:#F4F6FA;            /* 페이지 배경 (연한 그레이) */
+    --sidebar-bg:#FFFFFF;
+    --card:#FFFFFF;
+    --ink:#1D1D1F;
+    --ink-soft:#6E6E73;
+    --ink-faint:#A1A1A6;
+    --blue:#0071E3;          /* 포인트 컬러 */
+    --blue-soft:#EAF3FE;     /* 포인트 컬러의 연한 배경 버전 */
+    --blue-hover:#0077ED;
+    --line:#E5E5EA;
+    --font: 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+            'Malgun Gothic', 'Segoe UI', Roboto, sans-serif;
+    --sidebar-w: 320px;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+  }
+  body.lang-ko .en{display:none;}
+  body.lang-en .ko{display:none;}
+  ::selection{ background:var(--blue); color:#fff; }
+  h1,h2,h3{ font-family:var(--font); font-weight:700; margin:0; letter-spacing:-0.01em; }
+  a{ color:inherit; }
+  button{ font-family:var(--font); }
+
+  .layout{ display:flex; align-items:flex-start; min-height:100vh; }
+
+  /* ================= SIDEBAR ================= */
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0; background:var(--sidebar-bg);
+    border-right:1px solid var(--line);
+    position:sticky; top:0; height:100vh; overflow-y:auto;
+    padding:28px 26px 36px;
+  }
+  .side-top{ display:flex; justify-content:flex-end; margin-bottom:18px; }
+  .lang-toggle{
+    font-size:12px; font-weight:600; background:var(--blue-soft); color:var(--blue);
+    border:none; padding:6px 13px; border-radius:980px; cursor:pointer;
+  }
+  .lang-toggle:hover{ background:var(--blue); color:#fff; }
+
+  .avatar{
+    width:96px; height:96px; border-radius:50%; margin:0 auto 18px;
+    background:linear-gradient(135deg, var(--blue), #5AC8FA);
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:34px; font-weight:700; position:relative;
+  }
+  .avatar .dot{
+    position:absolute; bottom:4px; right:4px; width:16px; height:16px;
+    background:#34C759; border:3px solid #fff; border-radius:50%;
+  }
+  .id-block{ text-align:center; margin-bottom:20px; }
+  .id-block h2{ font-size:19px; }
+  .id-block p{ margin:4px 0 0; font-size:13px; color:var(--ink-soft); font-weight:500; }
+
+  .social-row{ display:flex; justify-content:center; gap:8px; margin-bottom:26px; }
+  .social-row a{
+    width:32px; height:32px; border-radius:50%; background:var(--blue-soft); color:var(--blue);
+    display:flex; align-items:center; justify-content:center; text-decoration:none;
+    transition:background .15s, color .15s;
+  }
+  .social-row a:hover{ background:var(--blue); color:#fff; }
+  .social-row svg{ width:15px; height:15px; }
+
+  .side-section{ margin-bottom:26px; }
+  .side-label{
+    font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;
+    color:var(--ink-faint); margin-bottom:12px;
+  }
+  .info-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:8px 0; border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .info-row:last-child{ border-bottom:none; }
+  .info-pill{
+    background:var(--blue-soft); color:var(--blue); font-weight:700; font-size:11px;
+    padding:4px 10px; border-radius:6px; white-space:nowrap;
+  }
+  .info-val{ color:var(--ink); font-weight:500; text-align:right; }
+
+  .bar-row{ margin-bottom:13px; }
+  .bar-row:last-child{ margin-bottom:0; }
+  .bar-top{ display:flex; justify-content:space-between; font-size:12.5px; font-weight:600; margin-bottom:6px; }
+  .bar-top span:last-child{ color:var(--ink-soft); font-weight:500; }
+  .bar-track{ height:6px; background:var(--blue-soft); border-radius:6px; overflow:hidden; }
+  .bar-fill{ height:100%; background:var(--blue); border-radius:6px; }
+
+  .extra-list{ list-style:none; margin:0; padding:0; display:grid; gap:9px; }
+  .extra-list li{ display:flex; align-items:center; gap:9px; font-size:13px; color:var(--ink); }
+  .extra-list svg{ width:14px; height:14px; color:var(--blue); flex-shrink:0; }
+
+  .cv-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; background:var(--blue); color:#fff; border:none; padding:13px;
+    border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; text-decoration:none;
+  }
+  .cv-btn:hover{ background:var(--blue-hover); }
+  .cv-btn svg{ width:15px; height:15px; }
+
+  /* ================= MAIN CONTENT ================= */
+  .content{ flex:1; min-width:0; }
+  .wrap{ max-width:920px; margin:0 auto; padding:0 40px; }
+
+  /* ---- Hero ---- */
+  .hero{
+    padding:70px 0 60px; position:relative; overflow:hidden;
+  }
+  .hero-grid{ display:flex; align-items:center; gap:40px; flex-wrap:wrap; }
+  .hero-text{ flex:1; min-width:280px; }
+  .eyebrow{
+    font-size:12.5px; font-weight:700; letter-spacing:0.03em; text-transform:uppercase;
+    color:var(--blue); margin-bottom:14px;
+  }
+  .hero h1{ font-size:clamp(30px,4.2vw,42px); line-height:1.25; }
+  .hero h1 .accent{ color:var(--blue); }
+  .hero-sub{ margin-top:18px; font-size:15.5px; line-height:1.7; color:var(--ink-soft); max-width:480px; font-weight:400;}
+  .hero-cta{ margin-top:28px; display:flex; gap:12px; flex-wrap:wrap; }
+  .btn-primary{
+    background:var(--blue); color:#fff; border:none; padding:13px 24px; border-radius:980px;
+    font-size:14px; font-weight:700; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn-primary:hover{ background:var(--blue-hover); }
+  .btn-ghost{
+    background:transparent; color:var(--ink); border:1px solid var(--line); padding:13px 24px; border-radius:980px;
+    font-size:14px; font-weight:700; cursor:pointer; text-decoration:none;
+  }
+  .btn-ghost:hover{ border-color:var(--blue); color:var(--blue); }
+
+  .hero-art{
+    width:200px; height:200px; border-radius:28px; flex-shrink:0;
+    background:linear-gradient(160deg, var(--blue-soft), #fff);
+    border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
+  }
+  .hero-art svg{ width:88px; height:88px; color:var(--blue); }
+
+  /* ---- Section shell ---- */
+  .section{ padding:54px 0; border-top:1px solid var(--line); }
+  .section-head{ margin-bottom:34px; }
+  .section-num{ font-size:12px; font-weight:700; color:var(--blue); letter-spacing:0.03em; margin-bottom:8px; display:block;}
+  .section-head h2{ font-size:clamp(22px,3.2vw,30px); }
+  .section-desc{ margin-top:8px; color:var(--ink-soft); font-size:13.5px; max-width:440px; line-height:1.6; }
+
+  /* ---- Services grid ---- */
+  .service-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .service-card{
+    background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px 20px;
+    text-align:center;
+  }
+  .service-card.wide{ grid-column:span 3; text-align:left; display:flex; align-items:center; gap:24px; flex-wrap:wrap; }
+  .service-icon{
+    width:48px; height:48px; border-radius:12px; background:var(--blue-soft); color:var(--blue);
+    display:flex; align-items:center; justify-content:center; margin:0 auto 14px;
+  }
+  .service-card.wide .service-icon{ margin:0; flex-shrink:0; }
+  .service-icon svg{ width:24px; height:24px; }
+  .service-card h3{ font-size:15.5px; margin-bottom:5px; }
+  .service-card p{ font-size:12.5px; color:var(--ink-soft); margin:0; line-height:1.5; font-weight:400;}
+  .service-card.wide .wide-text{ flex:1; min-width:220px; }
+  .service-card.wide .wide-text p{ font-size:13.5px; margin-top:6px; }
+
+  /* ---- Career (script accordion) ---- */
+  .script{ display:flex; flex-direction:column; }
+  .scene{ border-top:1px solid var(--line); }
+  .scene:last-child{ border-bottom:1px solid var(--line); }
+  .slugline{
+    width:100%; text-align:left; background:none; border:none; cursor:pointer;
+    padding:18px 0; display:flex; align-items:center; gap:14px; color:inherit; font-family:var(--font);
+  }
+  .slugline .dotmark{ width:8px; height:8px; border-radius:50%; background:var(--blue); flex-shrink:0; }
+  .slugline .company{ font-weight:700; font-size:16px; flex:1; }
+  .slugline .role{ font-size:12px; color:var(--ink-soft); font-weight:500; flex-shrink:0; }
+  .slugline .years{ font-size:12px; color:var(--ink-soft); flex-shrink:0; min-width:90px; text-align:right; font-weight:500;}
+  .slugline .chev{ flex-shrink:0; width:16px; height:16px; transition:transform .25s ease; color:var(--ink-soft); }
+  .scene.open .chev{ transform:rotate(180deg); }
+  .scene-body{ max-height:0; overflow:hidden; transition:max-height .4s ease; }
+  .scene.open .scene-body{ max-height:900px; }
+  .scene-inner{ padding:0 0 28px 22px; }
+  .action{ font-size:14px; line-height:1.7; color:var(--ink); max-width:620px; margin:0 0 14px; font-weight:400;}
+  .beats{ list-style:none; margin:0; padding:0; display:grid; gap:9px; }
+  .beats li{ position:relative; padding-left:18px; font-size:13.5px; line-height:1.55; color:var(--ink-soft); }
+  .beats li::before{ content:"›"; position:absolute; left:0; top:0; color:var(--blue); font-weight:700; }
+  .scene-tags{ margin-top:16px; display:flex; gap:7px; flex-wrap:wrap; }
+  .tag{ font-size:11px; font-weight:600; border:1px solid var(--line); padding:4px 10px; border-radius:980px; color:var(--ink-soft); }
+
+  /* ---- Projects grid ---- */
+  .reel-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .cut{
+    background:var(--card); border:1px solid var(--line); border-radius:16px; cursor:pointer;
+    padding:20px 20px 18px; transition:transform .2s ease, box-shadow .2s ease;
+    display:flex; flex-direction:column; gap:12px; min-height:190px;
+  }
+  .cut:hover{ transform:translateY(-3px); box-shadow:0 14px 24px -16px rgba(0,0,0,0.18); }
+  .cut-top{ display:flex; justify-content:space-between; align-items:flex-start; }
+  .cut-label{ font-size:11px; font-weight:700; color:var(--blue); }
+  .cut-tools{ font-size:10px; color:var(--ink-soft); text-align:right; font-weight:500;}
+  .cut h3{ font-size:17px; line-height:1.3; }
+  .cut p{ font-size:12.5px; line-height:1.5; color:var(--ink-soft); margin:0; flex:1; font-weight:400;}
+  .cut-open{ font-size:11.5px; font-weight:700; color:var(--blue); display:flex; align-items:center; gap:6px; }
+  .cut-open svg{ width:12px; height:12px; }
+
+  /* ---- Modal ---- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:50;
+    display:none; align-items:center; justify-content:center; padding:24px;
+  }
+  .modal-backdrop.active{ display:flex; }
+  .modal{
+    background:#fff; max-width:560px; width:100%; max-height:84vh; overflow-y:auto;
+    border-radius:18px; position:relative; padding:36px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.3);
+  }
+  .modal-close{
+    position:absolute; top:14px; right:14px; background:var(--bg); color:var(--ink);
+    border:none; width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px;
+  }
+  .modal-close:hover{ background:var(--line); }
+  .modal-label{ font-size:11.5px; font-weight:700; color:var(--blue); margin-bottom:12px; display:block;}
+  .modal h3{ font-size:23px; margin-bottom:14px; line-height:1.25; }
+  .modal .action{ font-size:14px; }
+  .modal .scene-tags{ margin-top:20px; padding-top:18px; border-top:1px solid var(--line); }
+
+  /* ---- Footer ---- */
+  footer{ padding:50px 0 60px; }
+  .foot-card{
+    background:var(--ink); color:#fff; border-radius:24px; padding:48px 40px;
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:24px;
+  }
+  .foot-card h2{ color:#fff; font-size:clamp(22px,3vw,30px); max-width:420px; }
+  .foot-links{ display:flex; gap:10px; flex-wrap:wrap; }
+  .foot-links a{
+    font-size:13px; font-weight:600; text-decoration:none; color:#fff;
+    background:rgba(255,255,255,0.12); padding:10px 18px; border-radius:980px;
+  }
+  .foot-links a:hover{ background:var(--blue); }
+  .copyright{ margin-top:24px; font-size:11.5px; color:var(--ink-soft); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px; font-weight:500;}
+
+  @media (max-width:860px){
+    .layout{ flex-direction:column; }
+    .sidebar{ width:100%; position:relative; height:auto; border-right:none; border-bottom:1px solid var(--line); }
+    .wrap{ padding:0 22px; }
+    .service-grid{ grid-template-columns:repeat(2,1fr); }
+    .service-card.wide{ grid-column:span 2; }
+  }
+  @media (max-width:520px){
+    .service-grid{ grid-template-columns:1fr; }
+    .service-card.wide{ grid-column:span 1; flex-direction:column; text-align:center; }
+    .foot-card{ flex-direction:column; align-items:flex-start; }
+  }
+</style>
+</head>
+<body class="lang-ko">
+
+<div class="layout">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar">
+    <div class="side-top">
+      <button class="lang-toggle" id="langToggle">KO / EN</button>
+    </div>
+
+    <div class="avatar" id="avatar"><span id="avatarInitial"></span><span class="dot"></span></div>
+    <div class="id-block">
+      <h2 id="sideName"></h2>
+      <p id="sideRole"></p>
+    </div>
+
+    <div class="social-row" id="socialRow"></div>
+
+    <div class="side-section">
+      <div class="info-row"><span class="info-pill"><span class="ko">위치</span><span class="en">Location</span></span><span class="info-val" id="infoLocation"></span></div>
+      <div class="info-row"><span class="info-pill"><span class="ko">최근 소속</span><span class="en">Recent</span></span><span class="info-val" id="infoRecent"></span></div>
+      <div class="info-row"><span class="info-pill"><span class="ko">상태</span><span class="en">Status</span></span><span class="info-val" id="infoStatus"></span></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label"><span class="ko">언어</span><span class="en">Languages</span></div>
+      <div id="langBars"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label"><span class="ko">스킬</span><span class="en">Skills</span></div>
+      <div id="skillBars"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label"><span class="ko">사용 도구</span><span class="en">Extra Tools</span></div>
+      <ul class="extra-list" id="extraList"></ul>
+    </div>
+
+    <a class="cv-btn" id="cvBtn" href="#" download>
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="ko">이력서 다운로드</span><span class="en">Download CV</span>
+    </a>
+  </aside>
+
+  <!-- ================= MAIN CONTENT ================= -->
+  <main class="content">
+
+    <!-- ---- HERO ---- -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div class="hero-text">
+          <div class="eyebrow"><span class="ko">포트폴리오 — 2026</span><span class="en">Portfolio — 2026</span></div>
+          <h1 id="heroHeading"></h1>
+          <p class="hero-sub" id="heroSub"></p>
+          <div class="hero-cta">
+            <a class="btn-primary" href="#contact">
+              <span class="ko">연락하기</span><span class="en">Get in Touch</span>
+              <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a class="btn-ghost" href="#reel"><span class="ko">프로젝트 보기</span><span class="en">View Projects</span></a>
+          </div>
+        </div>
+        <div class="hero-art">
+          <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- WHAT I DO ---- -->
+    <section class="section" id="services">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-num">01 — <span class="ko">하는 일</span><span class="en">WHAT I DO</span></span>
+          <h2><span class="ko">하는 일</span><span class="en">What I Do</span></h2>
+          <p class="section-desc"><span class="ko">AI 서비스 기획과 콘텐츠 제작을 잇는 6가지 영역입니다.</span><span class="en">Six areas bridging AI service planning and content production.</span></p>
+        </div>
+        <div class="service-grid" id="serviceGrid"></div>
+      </div>
+    </section>
+
+    <!-- ---- CAREER ---- -->
+    <section class="section" id="career">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-num">02 — <span class="ko">경력</span><span class="en">CAREER</span></span>
+          <h2><span class="ko">경력</span><span class="en">Career</span></h2>
+          <p class="section-desc"><span class="ko">회사명을 클릭하면 상세 경력기술서가 펼쳐집니다.</span><span class="en">Click a company to expand the full description.</span></p>
+        </div>
+        <div class="script" id="scriptList"></div>
+      </div>
+    </section>
+
+    <!-- ---- PROJECTS ---- -->
+    <section class="section" id="reel">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="section-num">03 — <span class="ko">프로젝트</span><span class="en">PROJECTS</span></span>
+          <h2><span class="ko">프로젝트</span><span class="en">Projects</span></h2>
+          <p class="section-desc"><span class="ko">카드를 클릭하면 상세 내용이 열립니다.</span><span class="en">Click a card to open the full detail.</span></p>
+        </div>
+        <div class="reel-grid" id="reelGrid"></div>
+      </div>
+    </section>
+
+    <!-- ---- FOOTER ---- -->
+    <footer id="contact">
+      <div class="wrap">
+        <div class="foot-card">
+          <h2><span class="ko">함께 만들 다음 프로젝트가 궁금하신가요?</span><span class="en">Curious about the next project?</span></h2>
+          <div class="foot-links" id="footLinks"></div>
+        </div>
+        <div class="copyright" id="copyrightRow"></div>
+      </div>
+    </footer>
+
+  </main>
+</div>
+
+<!-- ================= MODAL ================= -->
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-close" id="modalClose" aria-label="Close">✕</button>
+    <span class="modal-label" id="modalLabel"></span>
+    <h3 id="modalTitle"></h3>
+    <p class="action" id="modalDesc"></p>
+    <ul class="beats" id="modalBeats"></ul>
+    <div class="scene-tags" id="modalTags"></div>
+  </div>
+</div>
+
+<script>
+/* ================================================================
+   ✏️ CONFIG — 이 블록 안의 값만 고치면 사이트 전체에 반영됩니다.
+   - resumeUrl: 본인 이력서 PDF를 저장소에 올린 뒤 파일명으로 바꿔주세요.
+   - 사진을 넣고 싶으면 avatar 부분을 <img src="photo.jpg"> 로 바꾸면 됩니다.
+================================================================= */
+const CONFIG = {
+  brand: { name: "Isabelle", initial: "I" },
+  resumeUrl: "resume.pdf", // ✏️ 실제 이력서 PDF 파일명으로 변경
+
+  profile: {
+    location: "Seoul, KR",
+    recentCompany: "Kakao Entertainment",
+    status: { ko: "이직 준비 중", en: "Open to opportunities" },
+    role: { ko: "AI 서비스 기획자 · 애니메이션", en: "AI Service Planner · Animation" }
+  },
+
+  socials: [
+    { key: "mail", href: "mailto:your.email@example.com" },
+    { key: "linkedin", href: "https://www.linkedin.com/in/yourprofile" },
+    { key: "github", href: "https://github.com/yourusername" },
+    { key: "instagram", href: "https://instagram.com/bbomi.ai" }
+  ],
+
+  languages: [
+    { name: "Korean", percent: 100 },
+    { name: "English", percent: 95 }
+  ],
+
+  // ✏️ 퍼센트는 자기 평가 기준 — 자유롭게 조정하세요.
+  skillBars: [
+    { ko: "AI 서비스 기획", en: "AI Service Design", percent: 95 },
+    { ko: "프롬프트 엔지니어링", en: "Prompt Engineering", percent: 90 },
+    { ko: "번역/현지화 QA", en: "Localization QA", percent: 90 },
+    { ko: "LoRA / QLoRA 파인튜닝", en: "LoRA / QLoRA Fine-tuning", percent: 80 },
+    { ko: "스토리보드 / 미장센", en: "Storyboarding", percent: 80 },
+    { ko: "Python (CV)", en: "Python (CV)", percent: 70 }
+  ],
+
+  extraSkills: [
+    { ko: "Figma 자동화", en: "Figma Automation" },
+    { ko: "Google Apps Script", en: "Google Apps Script" },
+    { ko: "Claude Code CLI", en: "Claude Code CLI" },
+    { ko: "MediaPipe / MTCNN", en: "MediaPipe / MTCNN" }
+  ],
+
+  hero: {
+    headingKo: '안녕하세요, <span class="accent">Isabelle</span>입니다.<br>AI 서비스 기획자입니다.',
+    headingEn: 'Hi, I\'m <span class="accent">Isabelle</span>.<br>An AI Service Planner.',
+    sub: {
+      ko: "애니메이션 프로덕션과 AI 서비스 기획을 오가며, 콘텐츠와 기술 사이의 빈틈을 채우는 일을 합니다. 13년 이상의 해외 생활에서 비롯된 이중언어 감각으로 한국어·영어 콘텐츠를 동시에 다룹니다.",
+      en: "I move between animation production and AI service planning, filling the gap between content and technology. Over 13 years abroad shaped a near-native bilingual instinct for working across Korean and English content."
+    }
+  },
+
+  // ---- 하는 일 (6칸 카드, 마지막은 가로로 넓게) ----
+  services: [
+    { icon:"chip", titleKo:"AI 서비스 기획", titleEn:"AI Service Design",
+      descKo:"프로토타입부터 운영까지", descEn:"From prototype to operations" },
+    { icon:"terminal", titleKo:"프롬프트 엔지니어링", titleEn:"Prompt Engineering",
+      descKo:"GPTs, LLM Ops", descEn:"GPTs, LLM Ops" },
+    { icon:"globe", titleKo:"현지화 QA", titleEn:"Localization QA",
+      descKo:"한국어 · 영어 번역 검수", descEn:"Korean–English translation review" },
+    { icon:"clapper", titleKo:"애니메이션 프로덕션", titleEn:"Animation Production",
+      descKo:"스토리보드, 글로벌 IP 협업", descEn:"Storyboarding, global IP collaboration" },
+    { icon:"scan", titleKo:"컴퓨터 비전 / 데이터", titleEn:"Computer Vision / Data",
+      descKo:"MediaPipe, 영상 파이프라인", descEn:"MediaPipe, video pipelines" },
+    { icon:"megaphone", titleKo:"AI 콘텐츠 제작", titleEn:"AI Content Creation",
+      wide:true,
+      descKo:"비개발자 대상으로 AI 도구를 쉽게 풀어 설명하는 콘텐츠를 기획·제작합니다. 실무에 바로 적용 가능한 워크플로 중심의 설명을 지향합니다.",
+      descEn:"Plan and produce content that makes AI tools approachable for non-developers, focused on workflows people can apply right away." }
+  ],
+
+  // ---- 경력 ----
+  scenes: [
+    {
+      company: "Kakao Entertainment — AI Center",
+      roleKo: "AI 서비스 기획자", roleEn: "AI Service Planner",
+      years: "2022 — 2024",
+      openByDefault: true,
+      actionKo: "콘텐츠 제작 조직 안에서 AI 서비스 기획과 운영을 담당. 실험적 프로토타입을 경영진 의사결정으로, 사내 도구를 현업이 매일 쓰는 워크플로로 옮기는 역할.",
+      actionEn: "Led AI service planning and operations inside a content production organization — translating experimental prototypes into executive decisions, and internal tools into workflows people actually used every day.",
+      beats: [
+        { ko: "드라마 대본 생성 실험을 기획·운영하고 CTO 보고를 통해 5단계 마일스톤 로드맵으로 발전시킴", en: "Planned and ran a drama script generation experiment, developing it into a 5-stage milestone roadmap presented to the CTO" },
+        { ko: "웹툰 번역 품질 검수(QA)를 위한 AI 파이프라인을 설계", en: "Designed an AI-assisted QA pipeline for webtoon translation quality" },
+        { ko: "사내 전사 GPTs 배포를 주도, 프롬프트 개선 GPT 등 실무 도구를 직접 제작", en: "Led company-wide GPTs deployment, including building a prompt-improvement GPT tool used across teams" },
+        { ko: "프롬프트 엔지니어링 아티클이 Publy에 게재, CJ ENM 사내 LMS 콘텐츠로 채택됨", en: "Authored a prompt engineering article published on Publy, later adopted into CJ ENM's internal LMS" }
+      ],
+      tags: ["AI Service Design","Prompt Engineering","Stakeholder Presentation","GPTs / LLM Ops"]
+    },
+    {
+      company: "Studio Mir",
+      roleKo: "프로덕션 / 현지화 협업", roleEn: "Production / Localization Collaboration",
+      years: "20XX — 20XX", // ✏️ 재직 기간 입력
+      openByDefault: false,
+      actionKo: "루카스필름 프로듀서들과 직접 협업하며 《스타워즈: 비전스》 시즌 2 제작에 참여. 글로벌 IP 제작 환경에서 언어와 디테일이 동시에 중요한 작업을 경험.",
+      actionEn: "Worked directly with Lucasfilm producers on the production of Star Wars: Visions Vol. 2 — hands-on experience in a global-IP environment where language precision and craft detail mattered equally.",
+      beats: [
+        { ko: "글로벌 파트너사와의 커뮤니케이션 및 제작 조율", en: "Cross-team communication and production coordination with a global studio partner" },
+        { ko: "영어·한국어 동시 대응이 필요한 제작 문서 및 협업 프로세스 처리", en: "Handled production documentation and collaboration processes requiring simultaneous Korean–English fluency" }
+      ],
+      tags: ["Animation Production","Global IP","Bilingual Coordination"]
+    },
+    {
+      company: "Kick the Hurdle Studio",
+      roleKo: "자막 / 현지화", roleEn: "Subtitling / Localization",
+      years: "20XX — 20XX", // ✏️ 재직 기간 입력
+      openByDefault: false,
+      actionKo: "자막 제작 및 현지화 작업을 통해 콘텐츠가 언어를 넘어 의미를 잃지 않도록 다듬는 일을 담당.",
+      actionEn: "Worked on subtitling and localization, refining content so meaning survived the move across languages.",
+      beats: [
+        { ko: "영상 콘텐츠 자막 번역 및 타이밍 작업", en: "Subtitle translation and timing for video content" },
+        { ko: "현지화 과정에서의 문화적 뉘앙스 조정", en: "Adjusted cultural nuance through the localization process" }
+      ],
+      tags: ["Subtitling","Localization QA"]
+    }
+  ],
+
+  // ---- 프로젝트 ----
+  cuts: [
+    {
+      label: "CUT 01", tools: "Storyboard · Mise-en-scène · AI Pipeline",
+      titleKo: "「사이 (Between)」", titleEn: "「Between (사이)」",
+      descKo: "네이버웹툰 AI 애니메이터 지원을 위해 직접 개발한 오리지널 단편 애니메이션 기획. 풀 스토리보드와 미장센 설계, AI 툴 파이프라인 문서까지 전 과정을 직접 구성했습니다.",
+      descEn: "An original short animation concept developed for a Naver Webtoon AI Animator application — including a full storyboard, mise-en-scène design, and a documented AI tool pipeline, built end to end.",
+      beats: [
+        { ko: "오리지널 스토리 및 씬 구성", en: "Original story and scene structure" },
+        { ko: "전체 스토리보드 제작", en: "Full storyboard production" },
+        { ko: "AI 툴을 활용한 제작 파이프라인 설계", en: "AI-assisted production pipeline design" }
+      ],
+      tags: ["Storyboarding","Mise-en-scène","AI Pipeline"]
+    },
+    {
+      label: "CUT 02", tools: "LLM · Stakeholder Review",
+      titleKo: "드라마 대본 생성 실험", titleEn: "Drama Script Generation Experiment",
+      descKo: "AI를 활용한 드라마 대본 생성을 기획·실험하고, CTO 보고를 거쳐 5단계 마일스톤 로드맵으로 발전시킨 프로젝트.",
+      descEn: "Planned and ran an AI-assisted drama script generation experiment, presented to the CTO, and developed into a 5-stage milestone roadmap.",
+      beats: [
+        { ko: "실험 설계 및 프로토타입 기획", en: "Experiment design and prototype planning" },
+        { ko: "CTO 대상 보고 및 의사결정 지원", en: "CTO-level presentation and decision support" },
+        { ko: "5단계 마일스톤 로드맵 수립", en: "5-stage milestone roadmap" }
+      ],
+      tags: ["AI Service Design","Executive Presentation"]
+    },
+    {
+      label: "CUT 03", tools: "Translation QA · Pipeline Design",
+      titleKo: "웹툰 번역 QA 파이프라인", titleEn: "Webtoon Translation QA Pipeline",
+      descKo: "한·영 웹툰 번역의 품질을 검수하는 AI 기반 QA 파이프라인을 설계. 콘텐츠 의미와 뉘앙스를 잃지 않는 검수 체계를 구축했습니다.",
+      descEn: "Designed an AI-based QA pipeline to review Korean–English webtoon translation quality, building a review system that preserved nuance and meaning.",
+      beats: [
+        { ko: "번역 품질 검수 기준 정의", en: "Defined translation quality review criteria" },
+        { ko: "AI 기반 자동 검수 흐름 설계", en: "Designed AI-assisted automated review flow" }
+      ],
+      tags: ["Localization QA","Bilingual"]
+    },
+    {
+      label: "CUT 04", tools: "GPTs · Internal Tooling",
+      titleKo: "전사 GPTs 배포 & 프롬프트 개선 도구", titleEn: "Company-wide GPTs Deployment",
+      descKo: "사내 전사 GPTs 배포를 주도하고, 현업이 직접 쓰는 프롬프트 개선 GPT를 직접 제작·배포했습니다.",
+      descEn: "Led company-wide GPTs deployment and personally built a prompt-improvement GPT tool adopted across teams.",
+      beats: [
+        { ko: "전사 배포 전략 수립", en: "Company-wide rollout strategy" },
+        { ko: "프롬프트 개선 GPT 직접 설계·제작", en: "Designed and built the prompt-improvement GPT" }
+      ],
+      tags: ["LLM Ops","Internal Tools"]
+    },
+    {
+      label: "CUT 05", tools: "QLoRA · Qwen2.5-7B · Colab A100",
+      titleKo: "웹툰 의성어 번역 파인튜닝", titleEn: "Webtoon SFX Translation Fine-tune",
+      descKo: "직접 구축한 한·영 웹툰 의성어 번역 데이터셋(648쌍)으로 Qwen2.5-7B-Instruct를 QLoRA 기법으로 파인튜닝. Google Colab Pro A100에서 전체 파이프라인을 실행했습니다.",
+      descEn: "Fine-tuned Qwen2.5-7B-Instruct via QLoRA on a custom Korean–English webtoon sound-effect translation dataset (648 pairs) I built myself, running the full pipeline on Google Colab Pro with an A100.",
+      beats: [
+        { ko: "648쌍 데이터셋 직접 구축", en: "Built a 648-pair dataset from scratch" },
+        { ko: "QLoRA 파인튜닝 파이프라인 실행", en: "Ran the full QLoRA fine-tuning pipeline" },
+        { ko: "A100 환경에서 학습 및 평가", en: "Trained and evaluated on an A100" }
+      ],
+      tags: ["QLoRA","Dataset Building","Qwen2.5"]
+    },
+    {
+      label: "CUT 06", tools: "MTCNN · MediaPipe · Python",
+      titleKo: "유튜브 쇼츠 AI 자동화 파이프라인", titleEn: "YouTube Shorts AI Automation Pipeline",
+      descKo: "MTCNN과 MediaPipe 기반 활성 화자 감지를 활용해 9:16 비율로 자동 크롭하는 영상 처리 파이프라인을 설계하고, Claude Code CLI를 활용한 자동화 컨셉을 구축했습니다.",
+      descEn: "Designed a video-processing pipeline using MTCNN and MediaPipe for active-speaker-aware 9:16 auto-cropping, and built an automation concept using Claude Code CLI.",
+      beats: [
+        { ko: "MTCNN/MediaPipe 기반 활성 화자 감지", en: "Active speaker detection with MTCNN/MediaPipe" },
+        { ko: "9:16 자동 크롭 처리", en: "Automated 9:16 cropping" },
+        { ko: "Claude Code CLI 자동화 컨셉 설계", en: "Claude Code CLI automation concept" }
+      ],
+      tags: ["Computer Vision","Automation"]
+    },
+    {
+      label: "CUT 07", tools: "Sabermetrics · MediaPipe",
+      titleKo: "스윙 메커니즘 분석 (한화 이글스)", titleEn: "Swing Mechanics Analysis (Hanwha Eagles)",
+      descKo: "세이버메트릭스와 MediaPipe 기반 스윙 분석을 결합해 한화 이글스 선수의 타격 메커니즘을 심층 분석한 개인 프로젝트.",
+      descEn: "A personal deep-dive combining sabermetrics and MediaPipe-based swing analysis to study a Hanwha Eagles player's hitting mechanics.",
+      beats: [
+        { ko: "세이버메트릭스 데이터 분석", en: "Sabermetric data analysis" },
+        { ko: "MediaPipe 기반 스윙 메커니즘 시각화", en: "MediaPipe-based swing mechanics visualization" }
+      ],
+      tags: ["Data Analysis","Computer Vision","Personal Project"]
+    }
+    // ✏️ 공개하고 싶지 않은 카드는 위 객체 전체(쉼표 포함)를 지우면 됩니다.
+  ],
+
+  contact: {
+    email: "your.email@example.com",
+    linkedin: "https://www.linkedin.com/in/yourprofile",
+    github: "https://github.com/yourusername",
+    instagram: "https://instagram.com/bbomi.ai"
+  },
+  lastUpdated: "2026.06"
+};
+/* ============== ✏️ CONFIG 끝 — 아래부터는 렌더링 로직입니다 ============== */
+
+const ICONS = {
+  chip: '<rect x="6" y="6" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  terminal: '<rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M7 10l3 3-3 3M13 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  globe: '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18" stroke="currentColor" stroke-width="1.6"/>',
+  clapper: '<path d="M4 9h16v10a1 1 0 01-1 1H5a1 1 0 01-1-1V9z" stroke="currentColor" stroke-width="1.6"/><path d="M4 9l1.5-4h3L7 9M10.5 9l1.5-4h3l-1.5 4M17 9l1.5-4H21l-2 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>',
+  scan: '<path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.6"/>',
+  megaphone: '<path d="M3 10v4a1 1 0 001 1h2l9 4V5L6 9H4a1 1 0 00-1 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M19 9a4 4 0 010 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>'
+};
+const SOCIAL_ICONS = {
+  mail: '<path d="M3 5h18v14H3V5z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M3 6l9 7 9-7" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+  linkedin: '<rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M7 10v6M7 7.5v.01M11 16v-3.5a1.8 1.8 0 013.6 0V16M11 12v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  github: '<path d="M12 3a9 9 0 00-2.85 17.55c.45.08.6-.2.6-.43v-1.5c-2.5.55-3-1.1-3-1.1-.4-1-1-1.3-1-1.3-.8-.55.06-.54.06-.54.9.06 1.37.92 1.37.92.8 1.36 2.1.97 2.6.74.08-.58.31-.97.57-1.2-2-.23-4.1-1-4.1-4.45 0-.98.35-1.78.92-2.4-.09-.23-.4-1.16.1-2.4 0 0 .76-.24 2.5.92a8.7 8.7 0 014.5 0c1.74-1.16 2.5-.92 2.5-.92.5 1.24.2 2.17.1 2.4.57.62.92 1.42.92 2.4 0 3.46-2.1 4.22-4.1 4.44.32.28.6.83.6 1.67v2.47c0 .24.15.52.6.43A9 9 0 0012 3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/>',
+  instagram: '<rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor"/>'
+};
+const CHECK_ICON = '<path d="M5 12l4 4 10-10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+
+/* ---------- 언어 토글 ---------- */
+const langToggle = document.getElementById('langToggle');
+langToggle.addEventListener('click', () => {
+  document.body.classList.toggle('lang-ko');
+  document.body.classList.toggle('lang-en');
+  document.documentElement.lang = document.body.classList.contains('lang-en') ? 'en' : 'ko';
+  if(currentModalData) openModal(currentModalData);
+});
+
+/* ---------- 사이드바 ---------- */
+document.getElementById('avatarInitial').textContent = CONFIG.brand.initial;
+document.getElementById('sideName').textContent = CONFIG.brand.name;
+document.getElementById('sideRole').innerHTML = `<span class="ko">${CONFIG.profile.role.ko}</span><span class="en">${CONFIG.profile.role.en}</span>`;
+document.getElementById('cvBtn').href = CONFIG.resumeUrl;
+
+document.getElementById('socialRow').innerHTML = CONFIG.socials.map(s => `
+  <a href="${s.href}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none">${SOCIAL_ICONS[s.key]}</svg></a>
+`).join('');
+
+document.getElementById('infoLocation').textContent = CONFIG.profile.location;
+document.getElementById('infoRecent').textContent = CONFIG.profile.recentCompany;
+document.getElementById('infoStatus').innerHTML = `<span class="ko">${CONFIG.profile.status.ko}</span><span class="en">${CONFIG.profile.status.en}</span>`;
+
+document.getElementById('langBars').innerHTML = CONFIG.languages.map(l => `
+  <div class="bar-row">
+    <div class="bar-top"><span>${l.name}</span><span>${l.percent}%</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${l.percent}%"></div></div>
+  </div>
+`).join('');
+
+document.getElementById('skillBars').innerHTML = CONFIG.skillBars.map(s => `
+  <div class="bar-row">
+    <div class="bar-top"><span><span class="ko">${s.ko}</span><span class="en">${s.en}</span></span><span>${s.percent}%</span></div>
+    <div class="bar-track"><div class="bar-fill" style="width:${s.percent}%"></div></div>
+  </div>
+`).join('');
+
+document.getElementById('extraList').innerHTML = CONFIG.extraSkills.map(e => `
+  <li><svg viewBox="0 0 24 24" fill="none">${CHECK_ICON}</svg><span class="ko">${e.ko}</span><span class="en">${e.en}</span></li>
+`).join('');
+
+/* ---------- 히어로 ---------- */
+document.getElementById('heroHeading').innerHTML =
+  `<span class="ko">${CONFIG.hero.headingKo}</span><span class="en">${CONFIG.hero.headingEn}</span>`;
+document.getElementById('heroSub').innerHTML =
+  `<span class="ko">${CONFIG.hero.sub.ko}</span><span class="en">${CONFIG.hero.sub.en}</span>`;
+
+/* ---------- 하는 일 ---------- */
+document.getElementById('serviceGrid').innerHTML = CONFIG.services.map(s => `
+  <div class="service-card ${s.wide ? 'wide' : ''}">
+    <div class="service-icon"><svg viewBox="0 0 24 24" fill="none">${ICONS[s.icon]}</svg></div>
+    ${s.wide ? `
+      <div class="wide-text">
+        <h3><span class="ko">${s.titleKo}</span><span class="en">${s.titleEn}</span></h3>
+        <p><span class="ko">${s.descKo}</span><span class="en">${s.descEn}</span></p>
+      </div>
+    ` : `
+      <h3><span class="ko">${s.titleKo}</span><span class="en">${s.titleEn}</span></h3>
+      <p><span class="ko">${s.descKo}</span><span class="en">${s.descEn}</span></p>
+    `}
+  </div>
+`).join('');
+
+/* ---------- 경력 ---------- */
+const scriptList = document.getElementById('scriptList');
+scriptList.innerHTML = CONFIG.scenes.map((s) => `
+  <div class="scene ${s.openByDefault ? 'open' : ''}">
+    <button class="slugline" data-scene>
+      <span class="dotmark"></span>
+      <span class="company">${s.company}</span>
+      <span class="role"><span class="ko">${s.roleKo}</span><span class="en">${s.roleEn}</span></span>
+      <span class="years">${s.years}</span>
+      <svg class="chev" viewBox="0 0 20 20" fill="none"><path d="M5 7l5 5 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="scene-body">
+      <div class="scene-inner">
+        <p class="action"><span class="ko">${s.actionKo}</span><span class="en">${s.actionEn}</span></p>
+        <ul class="beats">${s.beats.map(b => `<li><span class="ko">${b.ko}</span><span class="en">${b.en}</span></li>`).join('')}</ul>
+        <div class="scene-tags">${s.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+      </div>
+    </div>
+  </div>
+`).join('');
+document.querySelectorAll('[data-scene]').forEach(btn=>{
+  btn.addEventListener('click', ()=> btn.closest('.scene').classList.toggle('open'));
+});
+
+/* ---------- 프로젝트 ---------- */
+const grid = document.getElementById('reelGrid');
+CONFIG.cuts.forEach((c) => {
+  const el = document.createElement('div');
+  el.className = 'cut';
+  el.innerHTML = `
+    <div class="cut-top">
+      <span class="cut-label">${c.label}</span>
+      <span class="cut-tools">${c.tools}</span>
+    </div>
+    <h3><span class="ko">${c.titleKo}</span><span class="en">${c.titleEn}</span></h3>
+    <p><span class="ko">${c.descKo}</span><span class="en">${c.descEn}</span></p>
+    <span class="cut-open"><span class="ko">상세 보기</span><span class="en">View detail</span>
+      <svg viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+  `;
+  el.addEventListener('click', () => openModal(c));
+  grid.appendChild(el);
+});
+
+/* ---------- 푸터 ---------- */
+document.getElementById('footLinks').innerHTML = `
+  <a href="mailto:${CONFIG.contact.email}">${CONFIG.contact.email}</a>
+  <a href="${CONFIG.contact.linkedin}" target="_blank" rel="noopener">LinkedIn</a>
+  <a href="${CONFIG.contact.github}" target="_blank" rel="noopener">GitHub</a>
+  <a href="${CONFIG.contact.instagram}" target="_blank" rel="noopener">Instagram</a>
+`;
+document.getElementById('copyrightRow').innerHTML = `
+  <span>© 2026 ${CONFIG.brand.name}</span>
+  <span><span class="ko">최종 업데이트</span><span class="en">Last updated</span> · ${CONFIG.lastUpdated}</span>
+`;
+
+/* ---------- 모달 ---------- */
+const backdrop = document.getElementById('modalBackdrop');
+const modalLabel = document.getElementById('modalLabel');
+const modalTitle = document.getElementById('modalTitle');
+const modalDesc = document.getElementById('modalDesc');
+const modalBeats = document.getElementById('modalBeats');
+const modalTags = document.getElementById('modalTags');
+let currentModalData = null;
+
+function openModal(c){
+  currentModalData = c;
+  const isEn = document.body.classList.contains('lang-en');
+  modalLabel.textContent = c.label + ' — ' + c.tools;
+  modalTitle.textContent = isEn ? c.titleEn : c.titleKo;
+  modalDesc.textContent = isEn ? c.descEn : c.descKo;
+  modalBeats.innerHTML = c.beats.map(b => `<li>${isEn ? b.en : b.ko}</li>`).join('');
+  modalTags.innerHTML = c.tags.map(t => `<span class="tag">${t}</span>`).join('');
+  backdrop.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(){
+  backdrop.classList.remove('active');
+  document.body.style.overflow = '';
+  currentModalData = null;
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+backdrop.addEventListener('click', (e)=>{ if(e.target === backdrop) closeModal(); });
+document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeModal(); });
+</script>
+
+</body>
+</html>
